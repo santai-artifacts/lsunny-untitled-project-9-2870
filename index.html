@@ -207,22 +207,11 @@
     <button class="btn" id="againBtn">Play Again</button>
   </div>
 
-  <!-- README modal -->
+  <!-- README modal (rendered from README.md at runtime) -->
   <div class="modal-backdrop hidden" id="readmeModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="readmeTitle">
       <button class="modal-close" id="readmeClose" aria-label="Close">×</button>
-      <h2 id="readmeTitle">🍉 Fruit Ninja</h2>
-      <p class="modal-lead">A juicy browser remake of the slice-the-fruit arcade classic — one self-contained page, no dependencies.</p>
-
-      <h3>How to Play</h3>
-      <ul>
-        <li><b>Swipe</b> with your mouse or finger to slice flying fruit.</li>
-        <li><b>Chain slices</b> in one swipe to build combos for bonus points.</li>
-        <li><b>Don't slice bombs</b>, and <b>don't let fruit fall</b> — each costs a life.</li>
-        <li>You have <b>3 lives</b>. It gets faster the longer you survive.</li>
-      </ul>
-
-      <p class="modal-foot">Built with vanilla HTML/CSS/JS on <code>&lt;canvas&gt;</code>. Best score is saved in your browser.</p>
+      <div class="modal-body" id="readmeBody"><p class="modal-loading">Loading…</p></div>
     </div>
   </div>
 </div>
