@@ -232,14 +232,16 @@
   resize();
 
   // ---------- Fruit definitions ----------
+  // kind drives the realistic garnish (stripes, citrus skin, stem/leaf...).
+  // light/body/dark feed a spherical radial gradient; inner is the sliced flesh.
   const FRUITS = [
-    { name: 'watermelon', body: '#e64c3c', rind: '#2ecc71', inner: '#ff6b6b', seeds: true,  r: 52 },
-    { name: 'orange',     body: '#ff9f1c', rind: '#e07b00', inner: '#ffb84d', seeds: false, r: 40 },
-    { name: 'lemon',      body: '#ffe14d', rind: '#e6c200', inner: '#fff08a', seeds: false, r: 38 },
-    { name: 'apple',      body: '#e74c3c', rind: '#b53225', inner: '#fff4e0', seeds: true,  r: 40 },
-    { name: 'kiwi',       body: '#7cb342', rind: '#5c4326', inner: '#c5e1a5', seeds: true,  r: 36 },
-    { name: 'plum',       body: '#8e44ad', rind: '#5e2d73', inner: '#d7a3e8', seeds: false, r: 36 },
-    { name: 'lime',       body: '#7ac74f', rind: '#4e8b2e', inner: '#c8f0a0', seeds: true,  r: 36 },
+    { name: 'watermelon', kind: 'watermelon', light: '#4bd07a', body: '#27a052', dark: '#0f5c2b', inner: '#ff5a6b', innerEdge: '#e63e50', seeds: 'black', r: 52 },
+    { name: 'orange',     kind: 'citrus',     light: '#ffc14d', body: '#ff951c', dark: '#c96700', inner: '#ffb44d', innerEdge: '#ff8c1a', seeds: false,   r: 40 },
+    { name: 'lemon',      kind: 'citrus',     light: '#fff27a', body: '#ffe14d', dark: '#d4a400', inner: '#fff08a', innerEdge: '#ffe14d', seeds: false, r: 38 },
+    { name: 'apple',      kind: 'apple',      light: '#ff7a6b', body: '#e23c30', dark: '#9e2018', inner: '#fff4e0', innerEdge: '#f3e2c4', seeds: 'brown', r: 42 },
+    { name: 'kiwi',       kind: 'kiwi',       light: '#9c7a4a', body: '#7c5c33', dark: '#4c3820', inner: '#a8d46a', innerEdge: '#c5e59a', seeds: 'ring',  r: 37 },
+    { name: 'plum',       kind: 'berry',      light: '#b06bd0', body: '#7e3b9e', dark: '#4a2160', inner: '#e0a86b', innerEdge: '#d59a5c', seeds: 'pit',   r: 37 },
+    { name: 'lime',       kind: 'citrus',     light: '#a6e05a', body: '#78c23a', dark: '#4a8020', inner: '#c8f0a0', innerEdge: '#a4e070', seeds: false,   r: 37 },
   ];
 
   // ---------- State ----------
@@ -492,27 +494,126 @@
   document.getElementById('againBtn').addEventListener('click', startGame);
 
   // ---------- Drawing ----------
+  // Spherical body: light source top-left, darkening toward the lower-right rim.
+  function sphereFill(r, light, body, dark) {
+    const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r * 1.05);
+    g.addColorStop(0, light);
+    g.addColorStop(0.5, body);
+    g.addColorStop(1, dark);
+    return g;
+  }
+  // Glossy specular dot + soft ambient sheen shared by every round fruit.
+  function addGloss(r) {
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.34, -r * 0.4, r * 0.26, r * 0.16, -0.6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-r * 0.42, -r * 0.46, r * 0.09, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fill();
+  }
+
   function drawFruit(o) {
+    const r = o.r, d = o.def;
     ctx.save();
     ctx.translate(o.x, o.y);
     ctx.rotate(o.rot);
+
+    // base sphere
     ctx.beginPath();
-    ctx.arc(0, 0, o.r, 0, Math.PI * 2);
-    ctx.fillStyle = o.def.rind;
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = sphereFill(r, d.light, d.body, d.dark);
     ctx.fill();
+
+    // rim shadow for volume
     ctx.beginPath();
-    ctx.arc(0, 0, o.r * 0.82, 0, Math.PI * 2);
-    ctx.fillStyle = o.def.body;
-    ctx.fill();
-    // sheen
-    ctx.beginPath();
-    ctx.ellipse(-o.r * 0.3, -o.r * 0.35, o.r * 0.28, o.r * 0.16, -0.6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fill();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.lineWidth = r * 0.1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.14)';
+    ctx.stroke();
+
+    // per-kind garnish
+    if (d.kind === 'watermelon') {
+      // dark curved rind stripes
+      ctx.save();
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+      ctx.strokeStyle = 'rgba(15,70,35,0.55)';
+      ctx.lineWidth = r * 0.14;
+      for (let i = -3; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * r * 0.3, -r * 1.2);
+        ctx.quadraticCurveTo(i * r * 0.42 + Math.sign(i) * r * 0.2, 0, i * r * 0.3, r * 1.2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (d.kind === 'citrus') {
+      // dimpled skin: scattered darker pores
+      ctx.fillStyle = 'rgba(0,0,0,0.10)';
+      for (let i = 0; i < 26; i++) {
+        const a = i * 2.399, rad = Math.sqrt(i / 26) * r * 0.85;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * rad, Math.sin(a) * rad, r * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // navel dimple
+      ctx.beginPath();
+      ctx.arc(0, r * 0.78, r * 0.1, 0, Math.PI * 2);
+      ctx.fillStyle = d.dark;
+      ctx.fill();
+    } else if (d.kind === 'apple') {
+      // waxy vertical highlight band
+      ctx.save();
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+      const band = ctx.createLinearGradient(-r, 0, r * 0.3, 0);
+      band.addColorStop(0, 'rgba(255,255,255,0)');
+      band.addColorStop(0.5, 'rgba(255,255,255,0.18)');
+      band.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = band;
+      ctx.fillRect(-r, -r, r * 0.9, r * 2);
+      ctx.restore();
+      // stem + leaf
+      ctx.strokeStyle = '#5a3a1e';
+      ctx.lineWidth = r * 0.09;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.9);
+      ctx.quadraticCurveTo(r * 0.12, -r * 1.15, r * 0.06, -r * 1.28);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(r * 0.28, -r * 1.12, r * 0.22, r * 0.11, -0.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#4fa235';
+      ctx.fill();
+    } else if (d.kind === 'kiwi') {
+      // fuzzy matte skin speckle
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      for (let i = 0; i < 40; i++) {
+        const a = i * 2.399, rad = Math.sqrt(i / 40) * r * 0.9;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * rad, Math.sin(a) * rad, r * 0.025, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (d.kind === 'berry') {
+      // plum crease down one side
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = r * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.95);
+      ctx.quadraticCurveTo(-r * 0.35, 0, 0, r * 0.95);
+      ctx.stroke();
+      // tiny stem nub
+      ctx.fillStyle = '#3a5a2a';
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.92, r * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    addGloss(r);
     ctx.restore();
   }
 
   function drawHalf(b) {
+    const r = b.r, d = b.def;
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(b.rot);
@@ -520,67 +621,159 @@
     // clip to a half based on the cut angle
     ctx.rotate(b.cut);
     ctx.beginPath();
-    if (b.side > 0) ctx.arc(0, 0, b.r, 0, Math.PI);
-    else ctx.arc(0, 0, b.r, Math.PI, Math.PI * 2);
+    if (b.side > 0) ctx.arc(0, 0, r, 0, Math.PI);
+    else ctx.arc(0, 0, r, Math.PI, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    // rind
+
+    // outer rind (shaded)
     ctx.beginPath();
-    ctx.arc(0, 0, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = b.def.rind;
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = sphereFill(r, d.light, d.body, d.dark);
     ctx.fill();
-    // flesh
+
+    // exposed flesh — radial gradient from juicy centre to paler edge
+    const fg = ctx.createRadialGradient(0, 0, r * 0.05, 0, 0, r * 0.86);
+    fg.addColorStop(0, d.inner);
+    fg.addColorStop(1, d.innerEdge);
     ctx.beginPath();
-    ctx.arc(0, 0, b.r * 0.82, 0, Math.PI * 2);
-    ctx.fillStyle = b.def.inner;
+    ctx.arc(0, 0, r * 0.84, 0, Math.PI * 2);
+    ctx.fillStyle = fg;
     ctx.fill();
-    // cut face highlight
+
+    // glossy wet cut face
     ctx.beginPath();
-    ctx.rect(-b.r, b.side > 0 ? 0 : -2, b.r * 2, 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.rect(-r, b.side > 0 ? 0 : -3, r * 2, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.fill();
-    // seeds
-    if (b.def.seeds) {
-      ctx.fillStyle = 'rgba(40,20,10,0.7)';
-      for (let i = -2; i <= 2; i++) {
+
+    // seeds / pit vary by fruit
+    const y = b.side * r * 0.34;
+    if (d.seeds === 'black') {           // watermelon
+      ctx.fillStyle = 'rgba(30,20,10,0.85)';
+      for (let i = -3; i <= 3; i++) {
         ctx.beginPath();
-        ctx.ellipse(i * b.r * 0.22, b.side * b.r * 0.32, 2.2, 3.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(i * r * 0.2, y, r * 0.05, r * 0.09, i * 0.2, 0, Math.PI * 2);
         ctx.fill();
+      }
+    } else if (d.seeds === 'brown') {    // apple core
+      ctx.fillStyle = 'rgba(80,50,20,0.8)';
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.ellipse(i * r * 0.18, b.side * r * 0.2, r * 0.05, r * 0.09, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (d.seeds === 'ring') {     // kiwi: white core + seed ring
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(20,20,20,0.75)';
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42, r * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (d.seeds === 'pit') {      // plum stone
+      ctx.fillStyle = 'rgba(120,70,30,0.85)';
+      ctx.beginPath();
+      ctx.ellipse(0, b.side * r * 0.28, r * 0.16, r * 0.24, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {                             // citrus segments
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8);
+        ctx.stroke();
       }
     }
     ctx.restore();
   }
 
   function drawBomb(o) {
+    const r = o.r;
     ctx.save();
     ctx.translate(o.x, o.y);
+
+    // dark contact shadow beneath already drawn by caller; body sphere here.
+    // The bomb doesn't spin its highlight — keep light fixed, rotate only the body texture subtly.
+    ctx.save();
     ctx.rotate(o.rot);
+
+    // cast-iron sphere with metallic radial shading
+    const g = ctx.createRadialGradient(-r * 0.4, -r * 0.45, r * 0.1, 0, 0, r * 1.1);
+    g.addColorStop(0, '#6b6f78');
+    g.addColorStop(0.35, '#33373f');
+    g.addColorStop(0.8, '#14151a');
+    g.addColorStop(1, '#050506');
     ctx.beginPath();
-    ctx.arc(0, 0, o.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a1a';
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#000';
+
+    // subtle reflected rim light on the dark side
+    ctx.beginPath();
+    ctx.arc(0, 0, r, Math.PI * 0.15, Math.PI * 0.75);
+    ctx.lineWidth = r * 0.07;
+    ctx.strokeStyle = 'rgba(120,140,180,0.25)';
     ctx.stroke();
-    // highlight
+    ctx.restore();
+
+    // fuse collar (metal ring on top) — fixed orientation
+    ctx.fillStyle = '#3a3a3a';
     ctx.beginPath();
-    ctx.arc(-o.r * 0.3, -o.r * 0.32, o.r * 0.22, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.ellipse(0, -r * 0.86, r * 0.24, r * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
-    // fuse cap
-    ctx.fillStyle = '#8a5a2b';
-    ctx.fillRect(-6, -o.r - 8, 12, 10);
-    // fuse spark
+    ctx.fillStyle = '#555';
+    ctx.fillRect(-r * 0.18, -r * 1.02, r * 0.36, r * 0.2);
+    ctx.fillStyle = '#2a2a2a';
     ctx.beginPath();
-    ctx.arc(0, -o.r - 12, 4 + Math.random() * 2, 0, Math.PI * 2);
-    ctx.fillStyle = Math.random() < 0.5 ? '#ffd23f' : '#ff6b3c';
+    ctx.ellipse(0, -r * 1.02, r * 0.18, r * 0.08, 0, 0, Math.PI * 2);
     ctx.fill();
-    // white skull-ish stripe
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 4;
+
+    // curved fuse
+    ctx.strokeStyle = '#7a5230';
+    ctx.lineWidth = r * 0.12;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(0, 0, o.r * 0.6, -0.4, 0.8);
+    ctx.moveTo(0, -r * 1.05);
+    ctx.quadraticCurveTo(r * 0.5, -r * 1.5, r * 0.32, -r * 1.75);
     ctx.stroke();
+
+    // sparks at the fuse tip (flicker via index-free jitter using elapsed)
+    const tipX = r * 0.32, tipY = -r * 1.75;
+    const flick = (elapsed % 6) / 6;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + elapsed * 0.3;
+      const rad = r * (0.14 + flick * 0.12);
+      ctx.beginPath();
+      ctx.arc(tipX + Math.cos(a) * rad, tipY + Math.sin(a) * rad, r * 0.05, 0, Math.PI * 2);
+      ctx.fillStyle = i % 2 ? '#ffd23f' : '#ff6b3c';
+      ctx.fill();
+    }
+    // hot core glow
+    const glow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, r * 0.4);
+    glow.addColorStop(0, 'rgba(255,240,180,0.9)');
+    glow.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, r * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // glossy specular highlight on the body (fixed light, drawn last)
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.34, -r * 0.42, r * 0.22, r * 0.13, -0.6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-r * 0.42, -r * 0.48, r * 0.07, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fill();
+
     ctx.restore();
   }
 
