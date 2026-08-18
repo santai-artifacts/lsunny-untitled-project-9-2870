@@ -161,6 +161,16 @@
   @keyframes pulse { 50% { opacity: 0.5; } }
 
   .hint { font-size: 14px; opacity: 0.55; font-weight: 400; }
+  .readme-link {
+    pointer-events: auto;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(255,210,63,0.7);
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .readme-link:hover { color: #fff; border-color: #fff; }
   .emoji-row { font-size: clamp(30px, 7vw, 46px); letter-spacing: 6px; }
 </style>
 </head>
