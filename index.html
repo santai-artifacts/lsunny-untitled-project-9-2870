@@ -172,6 +172,34 @@
   }
   .readme-link:hover { color: #fff; border-color: #fff; }
   .emoji-row { font-size: clamp(30px, 7vw, 46px); letter-spacing: 6px; }
+
+  /* ---------- Theme picker ---------- */
+  .theme-picker { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .theme-label {
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    opacity: 0.55; font-weight: 500;
+  }
+  .themes { display: flex; gap: 12px; }
+  .theme-swatch {
+    pointer-events: auto;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .theme-swatch:hover { transform: scale(1.12); }
+  .theme-swatch > span {
+    width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0,0,0,0.45);
+  }
+  .theme-swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 4px 12px rgba(0,0,0,0.4);
+    transform: scale(1.12);
+  }
 </style>
 </head>
 <body>
