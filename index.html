@@ -222,6 +222,10 @@
     <div class="emoji-row">🍉 🍊 🍋 🥝 🍎</div>
     <h1 class="title">FRUIT<span class="slash">/</span>NINJA</h1>
     <p class="subtitle">Swipe to slice the fruit. Chain slices for combo bonuses. Miss three and it's over — and whatever you do, <b>don't</b> cut the bombs.</p>
+    <div class="theme-picker">
+      <span class="theme-label">Theme</span>
+      <div class="themes" id="themes"></div>
+    </div>
     <button class="btn" id="startBtn">Play</button>
     <p class="hint">Drag with your mouse or finger to swipe · <a class="readme-link" href="README.md" target="_blank" rel="noopener">Read me</a></p>
   </div>
@@ -261,6 +265,42 @@
   const finalScoreEl = document.getElementById('finalScore');
   const newBestEl    = document.getElementById('newBest');
   const overEmoji    = document.getElementById('overEmoji');
+
+  // ---------- Themes ----------
+  // bg = canvas gradient [top, bottom]; glow = vignette tint; blade = trail rgb.
+  const THEMES = {
+    dojo:   { name: 'Dojo Night', bg: ['#2a1a4a', '#12132b'], accent: '#ffd23f', glow: '255,220,150', blade: '120,200,255' },
+    sunset: { name: 'Sunset',     bg: ['#ff7e5f', '#3a1c52'], accent: '#ffe59e', glow: '255,180,120', blade: '255,210,150' },
+    ocean:  { name: 'Ocean',      bg: ['#0d4d7a', '#03101f'], accent: '#5fe0ff', glow: '120,220,255', blade: '150,240,255' },
+  };
+  let theme = THEMES.dojo;
+
+  function applyTheme(key) {
+    theme = THEMES[key] || THEMES.dojo;
+    const root = document.documentElement.style;
+    root.setProperty('--accent', theme.accent);
+    root.setProperty('--bg-0', theme.bg[0]);
+    root.setProperty('--bg-1', theme.bg[1]);
+    document.querySelectorAll('.theme-swatch').forEach(el =>
+      el.classList.toggle('active', el.dataset.key === key));
+    try { localStorage.setItem('fn_theme', key); } catch {}
+  }
+
+  function buildThemes() {
+    const wrap = document.getElementById('themes');
+    wrap.innerHTML = '';
+    for (const [key, t] of Object.entries(THEMES)) {
+      const b = document.createElement('button');
+      b.className = 'theme-swatch';
+      b.dataset.key = key;
+      b.title = t.name;
+      b.setAttribute('aria-label', t.name + ' theme');
+      b.style.background = `linear-gradient(145deg, ${t.bg[0]}, ${t.bg[1]})`;
+      b.innerHTML = `<span style="background:${t.accent}"></span>`;
+      b.addEventListener('click', () => applyTheme(key));
+      wrap.appendChild(b);
+    }
+  }
 
   // ---------- Sizing (retina-aware) ----------
   let W = 0, H = 0, DPR = 1;
